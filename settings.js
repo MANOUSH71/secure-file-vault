@@ -7,51 +7,6 @@
 // ============================================
 
 // ============================================
-// Page Navigation (Overriding app.js showPage if needed)
-// ============================================
-
-function showPage(pageId) {
-    // Hide all pages
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-    
-    // Show selected page
-    document.getElementById(pageId).classList.add('active');
-    
-    // Update nav links
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('onclick') && link.getAttribute('onclick').includes(pageId)) {
-            link.classList.add('active');
-        }
-    });
-    
-    // Update user display on all pages
-    if (currentUser) {
-        for (let i = 1; i <= 6; i++) {
-            const userDisplay = document.getElementById(`userDisplay${i}`);
-            if (userDisplay) {
-                userDisplay.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-            }
-        }
-    }
-    
-    // Load page data
-    if (pageId === 'settingsPage') {
-        loadSettings();
-    } else if (pageId === 'analyticsPage') {
-        loadAnalytics();
-    } else if (pageId === 'notificationsPage') {
-        loadNotifications();
-    } else if (pageId === 'auditPage') {
-        loadAuditLogs();
-    } else if (pageId === 'fileRequestsPage') {
-        loadFileRequests();
-    }
-}
-
-// ============================================
 // Settings Functions
 // ============================================
 
@@ -61,6 +16,32 @@ function loadSettings() {
     document.getElementById('setFirstName').value = currentUser.firstName || '';
     document.getElementById('setLastName').value = currentUser.lastName || '';
     document.getElementById('setUsername').value = currentUser.username || '';
+
+    // Load cloud config
+    const config = cloudManager.getConfig();
+    if (config) {
+        document.getElementById('cloudConfig').value = JSON.stringify(config, null, 2);
+        document.getElementById('cloudStatus').textContent = "✅ Cloud Connected";
+        document.getElementById('cloudStatus').style.color = "var(--success)";
+    } else {
+        document.getElementById('cloudStatus').textContent = "❌ Cloud Not Connected (Local Only)";
+        document.getElementById('cloudStatus').style.color = "var(--danger)";
+    }
+}
+
+function saveCloudConfig(event) {
+    event.preventDefault();
+    const configStr = document.getElementById('cloudConfig').value.trim();
+    try {
+        const config = JSON.parse(configStr);
+        if (!config.apiKey || !config.databaseURL) {
+            throw new Error("Invalid config. apiKey and databaseURL are required.");
+        }
+        cloudManager.saveConfig(config);
+        showAlert('Cloud configuration saved! Page will reload.', 'success');
+    } catch (error) {
+        showAlert('Invalid JSON config: ' + error.message, 'error');
+    }
 }
 
 async function updateProfile(event) {

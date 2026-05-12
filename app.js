@@ -123,7 +123,9 @@ async function handleRegister(event) {
 
 function handleLogout() {
     // Add audit log before logout
-    addAuditLog('logout', 'User logged out');
+    if (currentUser) {
+        addAuditLog('logout', 'User logged out');
+    }
     
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     currentUser = null;
@@ -150,6 +152,7 @@ function showDashboard() {
     
     loadFiles();
     updateStats();
+    loadNotifications(); // Update badge count
 }
 
 // ============================================
@@ -248,6 +251,19 @@ async function encryptFile() {
         allFiles.push(fileRecord);
         saveFiles(allFiles);
         
+        // Sync to Cloud if enabled
+        if (cloudManager.enabled) {
+            try {
+                showLoading('Syncing to cloud...');
+                await cloudManager.saveFileMetadata(fileRecord);
+                await cloudManager.uploadEncryptedFile(fileId, encryptedData);
+                hideLoading();
+            } catch (cloudError) {
+                console.error("Cloud Sync Failed:", cloudError);
+                showAlert('Saved locally, but cloud sync failed.', 'warning');
+            }
+        }
+        
         hideLoading();
         showAlert('File encrypted successfully!', 'success');
         
@@ -334,6 +350,56 @@ function deleteFile(fileId) {
         
         // Add notification
         addNotification('file_deleted', 'File Deleted', `Deleted: ${file.originalName}`);
+    }
+}
+
+// ============================================
+// Page Navigation (Consolidated)
+// ============================================
+
+function showPage(pageId) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    
+    // Show selected page
+    document.getElementById(pageId).classList.add('active');
+    
+    // Update nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('onclick') && link.getAttribute('onclick').includes(pageId)) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Update user display on all pages
+    if (currentUser) {
+        const displays = [
+            'userDisplay', 'userDisplay2', 'userDisplay3', 
+            'userDisplay4', 'userDisplay5', 'userDisplay6'
+        ];
+        displays.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+        });
+    }
+    
+    // Load page data
+    if (pageId === 'dashboardPage') {
+        loadFiles();
+        updateStats();
+    } else if (pageId === 'settingsPage') {
+        if (typeof loadSettings === 'function') loadSettings();
+    } else if (pageId === 'analyticsPage') {
+        if (typeof loadAnalytics === 'function') loadAnalytics();
+    } else if (pageId === 'notificationsPage') {
+        if (typeof loadNotifications === 'function') loadNotifications();
+    } else if (pageId === 'auditPage') {
+        if (typeof loadAuditLogs === 'function') loadAuditLogs();
+    } else if (pageId === 'fileRequestsPage') {
+        if (typeof loadFileRequests === 'function') loadFileRequests();
     }
 }
 
@@ -432,7 +498,7 @@ function closeShareModal() {
     currentFileId = null;
 }
 
-function createShareLink() {
+async function createShareLink() {
     const expiryHours = parseInt(document.getElementById('shareExpiry').value);
     const sharePassword = document.getElementById('sharePassword').value;
     
@@ -446,18 +512,30 @@ function createShareLink() {
         password: sharePassword,
         expiresAt: expiresAt,
         createdAt: new Date().toISOString(),
-        downloads: 0
+        downloads: 0,
+        cloud: cloudManager.enabled // Mark if it's a cloud share
     };
     
     const shares = getShares();
     shares.push(share);
     saveShares(shares);
+
+    // Sync share to cloud if enabled
+    if (cloudManager.enabled) {
+        try {
+            await cloudManager.saveShareMetadata(share);
+        } catch (error) {
+            console.error("Cloud share sync failed:", error);
+        }
+    }
     
-    const shareUrl = `${window.location.origin}/share.html?token=${shareToken}`;
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+    const shareUrl = `${baseUrl}share.html?token=${shareToken}${cloudManager.enabled ? '&cloud=true' : ''}`;
     document.getElementById('shareLinkUrl').value = shareUrl;
     document.getElementById('shareLinkResult').style.display = 'block';
     
     showAlert('Share link created successfully!', 'success');
+    updateStats(); // Update the counter on dashboard
     
     // Add audit log
     const file = files.find(f => f.id === currentFileId);
@@ -579,11 +657,14 @@ function formatDate(dateString) {
 }
 
 function getMethodName(method) {
-    const names = {
-        'aes': 'AES-256-GCM',
-        'chacha': 'ChaCha20-Poly1305'
-    };
-    return names[method] || method.toUpperCase();
+    switch (method) {
+        case 'aes':
+        case 'aes-gcm': return 'AES-256-GCM';
+        case 'aes-cbc': return 'AES-256-CBC';
+        case 'aes-ctr': return 'AES-256-CTR';
+        case 'chacha': return 'ChaCha20';
+        default: return method.toUpperCase();
+    }
 }
 
 function showAlert(message, type = 'info') {

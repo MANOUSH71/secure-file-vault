@@ -113,7 +113,12 @@
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    
     <script src="crypto.js"></script>
+    <script src="cloud.js"></script>
     <script>
         let shareData = null;
         let fileData = null;
@@ -121,6 +126,7 @@
         // Get token from URL
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+        const isCloud = urlParams.get('cloud') === 'true';
 
         if (!token) {
             showError('Invalid share link');
@@ -128,28 +134,37 @@
             loadShareData();
         }
 
-        function loadShareData() {
-            // Get shares from localStorage
-            const shares = JSON.parse(localStorage.getItem('vault_shares') || '[]');
-            shareData = shares.find(s => s.token === token);
+        async function loadShareData() {
+            showLoading('Loading shared data...');
+            
+            if (isCloud) {
+                // Load from Cloud (Firebase)
+                try {
+                    shareData = await cloudManager.getShareMetadata(token);
+                    if (shareData) {
+                        fileData = await cloudManager.getFileMetadata(shareData.fileId);
+                        // Fetch the actual encrypted blob from storage
+                        const encryptedBuffer = await cloudManager.downloadEncryptedFile(fileData.id);
+                        fileData.encryptedData = arrayBufferToBase64(encryptedBuffer);
+                    }
+                } catch (error) {
+                    console.error("Cloud Load Error:", error);
+                }
+            } else {
+                // Load from LocalStorage
+                const shares = JSON.parse(localStorage.getItem('vault_shares') || '[]');
+                shareData = shares.find(s => s.token === token);
+                
+                if (shareData) {
+                    const files = JSON.parse(localStorage.getItem('vault_files') || '[]');
+                    fileData = files.find(f => f.id === shareData.fileId);
+                }
+            }
 
-            if (!shareData) {
+            hideLoading();
+
+            if (!shareData || !fileData) {
                 showError('Share link not found or expired');
-                return;
-            }
-
-            // Check expiry
-            if (new Date(shareData.expiresAt) < new Date()) {
-                showError('This share link has expired');
-                return;
-            }
-
-            // Get file data
-            const files = JSON.parse(localStorage.getItem('vault_files') || '[]');
-            fileData = files.find(f => f.id === shareData.fileId);
-
-            if (!fileData) {
-                showError('File not found');
                 return;
             }
 
@@ -242,6 +257,15 @@
             URL.revokeObjectURL(url);
         }
 
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
         function base64ToArrayBuffer(base64) {
             const binary = atob(base64);
             const bytes = new Uint8Array(binary.length);
@@ -265,11 +289,14 @@
         }
 
         function getMethodName(method) {
-            const names = {
-                'aes': 'AES-256-GCM',
-                'chacha': 'ChaCha20-Poly1305'
-            };
-            return names[method] || method.toUpperCase();
+            switch (method) {
+                case 'aes':
+                case 'aes-gcm': return 'AES-256-GCM';
+                case 'aes-cbc': return 'AES-256-CBC';
+                case 'aes-ctr': return 'AES-256-CTR';
+                case 'chacha': return 'ChaCha20';
+                default: return method.toUpperCase();
+            }
         }
 
         function showLoading(message) {

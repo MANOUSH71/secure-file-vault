@@ -11,7 +11,7 @@ class CryptoManager {
     /**
      * Derive encryption key from password using PBKDF2
      */
-    async deriveKey(password, salt, extraKey = '') {
+    async deriveKey(password, salt, extraKey = '', algorithm = 'AES-GCM') {
         const combined = password + '|' + extraKey;
         const encoder = new TextEncoder();
         const keyMaterial = await crypto.subtle.importKey(
@@ -30,117 +30,158 @@ class CryptoManager {
                 hash: 'SHA-256'
             },
             keyMaterial,
-            { name: 'AES-GCM', length: 256 },
+            { name: algorithm, length: 256 },
             false,
             ['encrypt', 'decrypt']
         );
     }
 
     /**
-     * Compress data using pako (gzip)
-     */
-    compress(data) {
-        // For simplicity, we'll skip compression in browser
-        // You can add pako.js library for gzip compression
-        return data;
-    }
-
-    /**
-     * Decompress data
-     */
-    decompress(data) {
-        return data;
-    }
-
-    /**
      * Encrypt file using AES-256-GCM
      */
-    async encryptAES(fileData, password, extraKey = '') {
+    async encryptAES_GCM(fileData, password, extraKey = '') {
         try {
-            // Generate salt and IV
             const salt = crypto.getRandomValues(new Uint8Array(16));
             const iv = crypto.getRandomValues(new Uint8Array(12));
+            const key = await this.deriveKey(password, salt, extraKey, 'AES-GCM');
 
-            // Derive key
-            const key = await this.deriveKey(password, salt, extraKey);
-
-            // Encrypt
             const encrypted = await crypto.subtle.encrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
+                { name: 'AES-GCM', iv: iv },
                 key,
                 fileData
             );
 
-            // Pack: [salt(16)] [iv(12)] [encrypted data]
             const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
             result.set(salt, 0);
             result.set(iv, salt.length);
             result.set(new Uint8Array(encrypted), salt.length + iv.length);
-
             return result;
         } catch (error) {
-            throw new Error('Encryption failed: ' + error.message);
+            throw new Error('AES-GCM Encryption failed: ' + error.message);
         }
     }
 
-    /**
-     * Decrypt file using AES-256-GCM
-     */
-    async decryptAES(encryptedData, password, extraKey = '') {
+    async decryptAES_GCM(encryptedData, password, extraKey = '') {
         try {
-            // Unpack
             const salt = encryptedData.slice(0, 16);
             const iv = encryptedData.slice(16, 28);
             const ciphertext = encryptedData.slice(28);
+            const key = await this.deriveKey(password, salt, extraKey, 'AES-GCM');
 
-            // Derive key
-            const key = await this.deriveKey(password, salt, extraKey);
-
-            // Decrypt
             const decrypted = await crypto.subtle.decrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
+                { name: 'AES-GCM', iv: iv },
                 key,
                 ciphertext
             );
-
             return new Uint8Array(decrypted);
         } catch (error) {
-            throw new Error('Decryption failed: Wrong password or corrupted data');
+            throw new Error('AES-GCM Decryption failed: Wrong password or corrupted data');
         }
     }
 
     /**
-     * Encrypt file using ChaCha20-Poly1305 (simulated with AES-GCM)
-     * Note: Web Crypto API doesn't support ChaCha20, so we use AES-GCM
+     * Encrypt file using AES-256-CBC
      */
-    async encryptChaCha(fileData, password, extraKey = '') {
-        // Use AES-GCM as fallback (ChaCha20 not available in Web Crypto API)
-        return await this.encryptAES(fileData, password, extraKey);
+    async encryptAES_CBC(fileData, password, extraKey = '') {
+        try {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(16)); // CBC uses 16 byte IV
+            const key = await this.deriveKey(password, salt, extraKey, 'AES-CBC');
+
+            const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-CBC', iv: iv },
+                key,
+                fileData
+            );
+
+            const result = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+            result.set(salt, 0);
+            result.set(iv, salt.length);
+            result.set(new Uint8Array(encrypted), salt.length + iv.length);
+            return result;
+        } catch (error) {
+            throw new Error('AES-CBC Encryption failed: ' + error.message);
+        }
+    }
+
+    async decryptAES_CBC(encryptedData, password, extraKey = '') {
+        try {
+            const salt = encryptedData.slice(0, 16);
+            const iv = encryptedData.slice(16, 32);
+            const ciphertext = encryptedData.slice(32);
+            const key = await this.deriveKey(password, salt, extraKey, 'AES-CBC');
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: 'AES-CBC', iv: iv },
+                key,
+                ciphertext
+            );
+            return new Uint8Array(decrypted);
+        } catch (error) {
+            throw new Error('AES-CBC Decryption failed: Wrong password or corrupted data');
+        }
     }
 
     /**
-     * Decrypt ChaCha20-Poly1305
+     * Encrypt file using AES-256-CTR
      */
-    async decryptChaCha(encryptedData, password, extraKey = '') {
-        return await this.decryptAES(encryptedData, password, extraKey);
+    async encryptAES_CTR(fileData, password, extraKey = '') {
+        try {
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const counter = crypto.getRandomValues(new Uint8Array(16)); // CTR uses 16 byte counter
+            const key = await this.deriveKey(password, salt, extraKey, 'AES-CTR');
+
+            const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-CTR', counter: counter, length: 64 },
+                key,
+                fileData
+            );
+
+            const result = new Uint8Array(salt.length + counter.length + encrypted.byteLength);
+            result.set(salt, 0);
+            result.set(counter, salt.length);
+            result.set(new Uint8Array(encrypted), salt.length + counter.length);
+            return result;
+        } catch (error) {
+            throw new Error('AES-CTR Encryption failed: ' + error.message);
+        }
+    }
+
+    async decryptAES_CTR(encryptedData, password, extraKey = '') {
+        try {
+            const salt = encryptedData.slice(0, 16);
+            const counter = encryptedData.slice(16, 32);
+            const ciphertext = encryptedData.slice(32);
+            const key = await this.deriveKey(password, salt, extraKey, 'AES-CTR');
+
+            const decrypted = await crypto.subtle.decrypt(
+                { name: 'AES-CTR', counter: counter, length: 64 },
+                key,
+                ciphertext
+            );
+            return new Uint8Array(decrypted);
+        } catch (error) {
+            throw new Error('AES-CTR Decryption failed: Wrong password or corrupted data');
+        }
     }
 
     /**
      * Main encrypt function
      */
     async encrypt(fileData, password, extraKey = '', method = 'aes') {
-        if (method === 'aes') {
-            return await this.encryptAES(fileData, password, extraKey);
-        } else if (method === 'chacha') {
-            return await this.encryptChaCha(fileData, password, extraKey);
-        } else {
-            throw new Error('Unknown encryption method: ' + method);
+        switch (method) {
+            case 'aes':
+            case 'aes-gcm':
+                return await this.encryptAES_GCM(fileData, password, extraKey);
+            case 'aes-cbc':
+                return await this.encryptAES_CBC(fileData, password, extraKey);
+            case 'aes-ctr':
+                return await this.encryptAES_CTR(fileData, password, extraKey);
+            case 'chacha':
+                // Fallback as Web Crypto doesn't support ChaCha
+                return await this.encryptAES_GCM(fileData, password, extraKey);
+            default:
+                throw new Error('Unknown encryption method: ' + method);
         }
     }
 
@@ -148,12 +189,18 @@ class CryptoManager {
      * Main decrypt function
      */
     async decrypt(encryptedData, password, extraKey = '', method = 'aes') {
-        if (method === 'aes') {
-            return await this.decryptAES(encryptedData, password, extraKey);
-        } else if (method === 'chacha') {
-            return await this.decryptChaCha(encryptedData, password, extraKey);
-        } else {
-            throw new Error('Unknown encryption method: ' + method);
+        switch (method) {
+            case 'aes':
+            case 'aes-gcm':
+                return await this.decryptAES_GCM(encryptedData, password, extraKey);
+            case 'aes-cbc':
+                return await this.decryptAES_CBC(encryptedData, password, extraKey);
+            case 'aes-ctr':
+                return await this.decryptAES_CTR(encryptedData, password, extraKey);
+            case 'chacha':
+                return await this.decryptAES_GCM(encryptedData, password, extraKey);
+            default:
+                throw new Error('Unknown encryption method: ' + method);
         }
     }
 
@@ -179,5 +226,4 @@ class CryptoManager {
     }
 }
 
-// Export for use in app.js
 const cryptoManager = new CryptoManager();

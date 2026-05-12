@@ -136,8 +136,10 @@
                     <div class="form-group">
                         <label>Encryption Method</label>
                         <select id="encryptionMethod">
-                            <option value="aes">AES-256-GCM (Recommended)</option>
-                            <option value="chacha">ChaCha20-Poly1305</option>
+                            <option value="aes-gcm">AES-256-GCM (Recommended)</option>
+                            <option value="aes-cbc">AES-256-CBC (High Compatibility)</option>
+                            <option value="aes-ctr">AES-256-CTR (Streaming)</option>
+                            <option value="chacha">ChaCha20-Poly1305 (Legacy)</option>
                         </select>
                     </div>
 
@@ -280,6 +282,20 @@
                     </form>
                 </div>
 
+                <div class="settings-card">
+                    <h3>🌐 Cloud Integration (Global Sharing)</h3>
+                    <p>Connect to Firebase to make your share links work for everyone.</p>
+                    <form onsubmit="saveCloudConfig(event)">
+                        <div class="form-group">
+                            <label>Firebase Config (JSON)</label>
+                            <textarea id="cloudConfig" placeholder='{"apiKey": "...", "authDomain": "...", ...}' rows="5"></textarea>
+                            <small>Paste your Firebase project web app configuration here.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Connect Cloud</button>
+                        <div id="cloudStatus" style="margin-top: 10px; font-weight: 600;"></div>
+                    </form>
+                </div>
+
                 <div class="settings-card danger-zone">
                     <h3>⚠️ Danger Zone</h3>
                     <p>Permanently delete all your encrypted files and data.</p>
@@ -367,7 +383,6 @@
                 <button onclick="filterNotifications('unread')" class="filter-btn">Unread</button>
                 <button onclick="filterNotifications('file')" class="filter-btn">Files</button>
                 <button onclick="filterNotifications('share')" class="filter-btn">Shares</button>
-                <button onclick="filterNotifications('team')" class="filter-btn">Teams</button>
             </div>
 
             <div id="notificationsList" class="notifications-list">
@@ -498,7 +513,12 @@
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    
     <script src="crypto.js"></script>
+    <script src="cloud.js"></script>
     <script src="app.js"></script>
     <script src="settings.js"></script>
     <script src="analytics.js"></script>
