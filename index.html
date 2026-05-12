@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Secure File Vault Pro</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login/Register Page -->
+    <div id="authPage" class="page active">
+        <div class="auth-container">
+            <div class="logo">
+                <h1>🔐 Secure File Vault Pro</h1>
+                <p>Military-Grade File Encryption</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form active">
+                <h2>Login</h2>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+                <p class="switch-form">
+                    Don't have an account? <a href="#" onclick="showRegister()">Create Account</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="auth-form">
+                <h2>Create Account</h2>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" id="regFirstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" id="regLastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="regUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="regPassword" required minlength="8">
+                        <small>At least 8 characters</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </form>
+                <p class="switch-form">
+                    Already have an account? <a href="#" onclick="showLogin()">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🔐 Secure Vault</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="showPage('dashboardPage')" class="nav-link active">📂 Dashboard</a>
+                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
+                <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications <span id="notifBadge" class="badge">0</span></a>
+                <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
+                <a href="#" onclick="showPage('fileRequestsPage')" class="nav-link">📥 File Requests</a>
+            </div>
+            <div class="nav-menu">
+                <span id="userDisplay"></span>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-info">
+                        <h3 id="totalFiles">0</h3>
+                        <p>Total Files</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💾</div>
+                    <div class="stat-info">
+                        <h3 id="totalSize">0 MB</h3>
+                        <p>Total Size</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔒</div>
+                    <div class="stat-info">
+                        <h3 id="encryptedFiles">0</h3>
+                        <p>Encrypted</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔗</div>
+                    <div class="stat-info">
+                        <h3 id="sharedFiles">0</h3>
+                        <p>Shared</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <h2>🔐 Encrypt New File</h2>
+                <div class="upload-area" id="uploadArea" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">📤</div>
+                    <p>Drag & Drop file here or click to browse</p>
+                    <input type="file" id="fileInput" onchange="handleFileSelect(event)" hidden>
+                    <button onclick="document.getElementById('fileInput').click()" class="btn btn-primary">Choose File</button>
+                </div>
+
+                <div id="encryptForm" class="encrypt-form" style="display: none;">
+                    <div class="file-preview">
+                        <span id="selectedFileName"></span>
+                        <span id="selectedFileSize"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Encryption Method</label>
+                        <select id="encryptionMethod">
+                            <option value="aes">AES-256-GCM (Recommended)</option>
+                            <option value="chacha">ChaCha20-Poly1305</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" id="encryptPassword" required minlength="8">
+                        <small>Strong password required (8+ characters)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Additional Key (Optional)</label>
+                        <input type="text" id="extraKey">
+                        <small>Extra security layer - keep it safe!</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button onclick="encryptFile()" class="btn btn-success">🔒 Encrypt File</button>
+                        <button onclick="cancelUpload()" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Files List -->
+            <div class="files-section">
+                <h2>📂 Your Encrypted Files</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search files..." onkeyup="filterFiles()">
+                </div>
+                <div id="filesList" class="files-list">
+                    <!-- Files will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decrypt Modal -->
+    <div id="decryptModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDecryptModal()">&times;</span>
+            <h2>🔓 Decrypt File</h2>
+            <p id="decryptFileName"></p>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="decryptPassword" required>
+            </div>
+            <div class="form-group">
+                <label>Additional Key (if used)</label>
+                <input type="text" id="decryptExtraKey">
+            </div>
+            <button onclick="decryptFile()" class="btn btn-success">Decrypt & Download</button>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeShareModal()">&times;</span>
+            <h2>🔗 Share File</h2>
+            <p id="shareFileName"></p>
+            <div class="form-group">
+                <label>Expiration (hours)</label>
+                <input type="number" id="shareExpiry" value="24" min="1" max="168">
+            </div>
+            <div class="form-group">
+                <label>Share Password (Optional)</label>
+                <input type="password" id="sharePassword">
+            </div>
+            <button onclick="createShareLink()" class="btn btn-primary">Create Share Link</button>
+            <div id="shareLinkResult" style="display: none;">
+                <div class="share-link-box">
+                    <input type="text" id="shareLinkUrl" readonly>
+                    <button onclick="copyShareLink()" class="btn btn-secondary">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teams Page -->
+    <div id="teamsPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🔐 Secure Vault</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
+                <a href="#" onclick="showPage('teamsPage')" class="nav-link active">👥 Teams</a>
+                <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
+                <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
+                <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
+                <a href="#" onclick="showPage('fileRequestsPage')" class="nav-link">📥 File Requests</a>
+            </div>
+            <div class="nav-menu">
+                <span id="userDisplay2"></span>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="page-header">
+                <h1>👥 Teams Management</h1>
+                <button onclick="openCreateTeamModal()" class="btn btn-primary">+ Create Team</button>
+            </div>
+
+            <div id="teamsList" class="teams-grid">
+                <!-- Teams will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Page -->
+    <div id="analyticsPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🔐 Secure Vault</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
+                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('analyticsPage')" class="nav-link active">📊 Analytics</a>
+                <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
+                <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
+                <a href="#" onclick="showPage('fileRequestsPage')" class="nav-link">📥 File Requests</a>
+            </div>
+            <div class="nav-menu">
+                <span id="userDisplay3"></span>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <h1>📊 Analytics Dashboard</h1>
+
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h3>📈 Activity Over Time</h3>
+                    <canvas id="activityChart"></canvas>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>🔐 Encryption Methods</h3>
+                    <canvas id="methodsChart"></canvas>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>📊 File Size Distribution</h3>
+                    <div id="sizeDistribution"></div>
+                </div>
+
+                <div class="analytics-card">
+                    <h3>🔗 Most Shared Files</h3>
+                    <div id="topShared"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Page -->
+    <div id="notificationsPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🔐 Secure Vault</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
+                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
+                <a href="#" onclick="showPage('notificationsPage')" class="nav-link active">🔔 Notifications</a>
+                <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
+                <a href="#" onclick="showPage('fileRequestsPage')" class="nav-link">📥 File Requests</a>
+            </div>
+            <div class="nav-menu">
+                <span id="userDisplay4"></span>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="page-header">
+                <h1>🔔 Notifications</h1>
+                <button onclick="markAllNotificationsRead()" class="btn btn-secondary">Mark All Read</button>
+            </div>
+
+            <div class="notifications-filter">
+                <button onclick="filterNotifications('all')" class="filter-btn active">All</button>
+                <button onclick="filterNotifications('unread')" class="filter-btn">Unread</button>
+                <button onclick="filterNotifications('file')" class="filter-btn">Files</button>
+                <button onclick="filterNotifications('share')" class="filter-btn">Shares</button>
+                <button onclick="filterNotifications('team')" class="filter-btn">Teams</button>
+            </div>
+
+            <div id="notificationsList" class="notifications-list">
+                <!-- Notifications will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs Page -->
+    <div id="auditPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🔐 Secure Vault</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
+                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
+                <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
+                <a href="#" onclick="showPage('auditPage')" class="nav-link active">📋 Audit Logs</a>
+                <a href="#" onclick="showPage('fileRequestsPage')" class="nav-link">📥 File Requests</a>
+            </div>
+            <div class="nav-menu">
+                <span id="userDisplay5"></span>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="page-header">
+                <h1>📋 Audit Logs</h1>
+                <button onclick="exportAuditLogs()" class="btn btn-primary">📥 Export CSV</button>
+            </div>
+
+            <div class="audit-filters">
+                <input type="text" id="auditSearch" placeholder="Search logs..." onkeyup="filterAuditLogs()">
+                <select id="auditAction" onchange="filterAuditLogs()">
+                    <option value="">All Actions</option>
+                    <option value="login">Login</option>
+                    <option value="logout">Logout</option>
+                    <option value="encrypt">Encrypt</option>
+                    <option value="decrypt">Decrypt</option>
+                    <option value="share">Share</option>
+                    <option value="delete">Delete</option>
+                </select>
+                <input type="date" id="auditDate" onchange="filterAuditLogs()">
+            </div>
+
+            <div id="auditLogsList" class="audit-logs-table">
+                <!-- Audit logs will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- File Requests Page -->
+    <div id="fileRequestsPage" class="page">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🔐 Secure Vault</h2>
+            </div>
+            <div class="nav-links">
+                <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
+                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
+                <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
+                <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
+                <a href="#" onclick="showPage('fileRequestsPage')" class="nav-link active">📥 File Requests</a>
+            </div>
+            <div class="nav-menu">
+                <span id="userDisplay6"></span>
+                <button onclick="handleLogout()" class="btn btn-secondary">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="page-header">
+                <h1>📥 File Requests</h1>
+                <button onclick="openCreateRequestModal()" class="btn btn-primary">+ Create Request</button>
+            </div>
+
+            <div id="fileRequestsList" class="requests-grid">
+                <!-- File requests will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Team Modal -->
+    <div id="createTeamModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateTeamModal()">&times;</span>
+            <h2>👥 Create New Team</h2>
+            <div class="form-group">
+                <label>Team Name</label>
+                <input type="text" id="teamName" placeholder="Enter team name" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="teamDescription" placeholder="Team description (optional)"></textarea>
+            </div>
+            <button onclick="createTeam()" class="btn btn-primary">Create Team</button>
+        </div>
+    </div>
+
+    <!-- Create File Request Modal -->
+    <div id="createRequestModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateRequestModal()">&times;</span>
+            <h2>📥 Create File Request</h2>
+            <div class="form-group">
+                <label>Request Title</label>
+                <input type="text" id="requestTitle" placeholder="What files do you need?" required>
+            </div>
+            <div class="form-group">
+                <label>Maximum Files</label>
+                <input type="number" id="requestMaxFiles" value="5" min="1" max="50">
+            </div>
+            <div class="form-group">
+                <label>Expires In (hours)</label>
+                <input type="number" id="requestExpiry" value="48" min="1" max="168">
+            </div>
+            <button onclick="createFileRequest()" class="btn btn-primary">Create Request</button>
+            <div id="requestLinkResult" style="display: none; margin-top: 20px;">
+                <div class="share-link-box">
+                    <input type="text" id="requestLinkUrl" readonly>
+                    <button onclick="copyRequestLink()" class="btn btn-secondary">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="crypto.js"></script>
+    <script src="app.js"></script>
+    <script src="teams.js"></script>
+    <script src="analytics.js"></script>
+    <script src="notifications.js"></script>
+    <script src="audit.js"></script>
+    <script src="requests.js"></script>
+</body>
+</html>

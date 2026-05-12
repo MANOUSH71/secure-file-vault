@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔗 Shared File - Secure Vault Pro</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .share-page {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .share-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .share-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .share-header h1 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .file-details {
+            background: var(--light);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .file-details p {
+            margin: 10px 0;
+            color: var(--dark);
+        }
+
+        .file-details strong {
+            color: var(--primary);
+        }
+
+        .error-message {
+            background: #fee;
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .success-message {
+            background: #efe;
+            color: var(--success);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="share-page">
+        <div class="share-container">
+            <div class="share-header">
+                <h1>🔗 Shared File</h1>
+                <p>Someone shared an encrypted file with you</p>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="successMessage" class="success-message" style="display: none;"></div>
+
+            <div id="shareContent" style="display: none;">
+                <div class="file-details">
+                    <p><strong>📄 File:</strong> <span id="fileName"></span></p>
+                    <p><strong>📊 Size:</strong> <span id="fileSize"></span></p>
+                    <p><strong>🔐 Method:</strong> <span id="encMethod"></span></p>
+                    <p><strong>📅 Shared:</strong> <span id="sharedDate"></span></p>
+                    <p><strong>⏰ Expires:</strong> <span id="expiryDate"></span></p>
+                </div>
+
+                <div id="passwordForm" style="display: none;">
+                    <div class="form-group">
+                        <label>Share Password</label>
+                        <input type="password" id="sharePassword" placeholder="Enter share password">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Decryption Password</label>
+                    <input type="password" id="decryptPassword" placeholder="Enter file password" required>
+                    <small>You need the original encryption password</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Additional Key (if used)</label>
+                    <input type="text" id="extraKey" placeholder="Optional extra key">
+                </div>
+
+                <button onclick="downloadSharedFile()" class="btn btn-success" style="width: 100%;">
+                    🔓 Decrypt & Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="crypto.js"></script>
+    <script>
+        let shareData = null;
+        let fileData = null;
+
+        // Get token from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        if (!token) {
+            showError('Invalid share link');
+        } else {
+            loadShareData();
+        }
+
+        function loadShareData() {
+            // Get shares from localStorage
+            const shares = JSON.parse(localStorage.getItem('vault_shares') || '[]');
+            shareData = shares.find(s => s.token === token);
+
+            if (!shareData) {
+                showError('Share link not found or expired');
+                return;
+            }
+
+            // Check expiry
+            if (new Date(shareData.expiresAt) < new Date()) {
+                showError('This share link has expired');
+                return;
+            }
+
+            // Get file data
+            const files = JSON.parse(localStorage.getItem('vault_files') || '[]');
+            fileData = files.find(f => f.id === shareData.fileId);
+
+            if (!fileData) {
+                showError('File not found');
+                return;
+            }
+
+            // Display file info
+            document.getElementById('fileName').textContent = fileData.originalName;
+            document.getElementById('fileSize').textContent = formatFileSize(fileData.size);
+            document.getElementById('encMethod').textContent = getMethodName(fileData.method);
+            document.getElementById('sharedDate').textContent = formatDate(shareData.createdAt);
+            document.getElementById('expiryDate').textContent = formatDate(shareData.expiresAt);
+
+            // Show password form if required
+            if (shareData.password) {
+                document.getElementById('passwordForm').style.display = 'block';
+            }
+
+            document.getElementById('shareContent').style.display = 'block';
+        }
+
+        async function downloadSharedFile() {
+            // Check share password if required
+            if (shareData.password) {
+                const sharePassword = document.getElementById('sharePassword').value;
+                if (sharePassword !== shareData.password) {
+                    showError('Invalid share password');
+                    return;
+                }
+            }
+
+            const decryptPassword = document.getElementById('decryptPassword').value;
+            const extraKey = document.getElementById('extraKey').value;
+
+            if (!decryptPassword) {
+                showError('Decryption password required');
+                return;
+            }
+
+            showLoading('Decrypting file...');
+
+            try {
+                // Decrypt file
+                const encryptedData = base64ToArrayBuffer(fileData.encryptedData);
+                const decryptedData = await cryptoManager.decrypt(
+                    new Uint8Array(encryptedData),
+                    decryptPassword,
+                    extraKey,
+                    fileData.method
+                );
+
+                // Download
+                downloadFile(decryptedData, fileData.originalName);
+
+                // Update download count
+                shareData.downloads++;
+                const shares = JSON.parse(localStorage.getItem('vault_shares') || '[]');
+                const index = shares.findIndex(s => s.token === token);
+                if (index !== -1) {
+                    shares[index] = shareData;
+                    localStorage.setItem('vault_shares', JSON.stringify(shares));
+                }
+
+                hideLoading();
+                showSuccess('File downloaded successfully!');
+
+            } catch (error) {
+                hideLoading();
+                showError('Decryption failed: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('shareContent').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successMessage').style.display = 'block';
+        }
+
+        function downloadFile(data, filename) {
+            const blob = new Blob([data]);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        }
+
+        function getMethodName(method) {
+            const names = {
+                'aes': 'AES-256-GCM',
+                'chacha': 'ChaCha20-Poly1305'
+            };
+            return names[method] || method.toUpperCase();
+        }
+
+        function showLoading(message) {
+            const overlay = document.createElement('div');
+            overlay.id = 'loadingOverlay';
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+    </script>
+</body>
+</html>
