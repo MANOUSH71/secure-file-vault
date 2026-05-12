@@ -1,0 +1,9 @@
+run = "python app.py"
+modules = ["python-3.9"]
+
+[env]
+PYTHONUNBUFFERED = "1"
+FLASK_ENV = "production"
+
+[nix]
+channel = "stable-22_11"
