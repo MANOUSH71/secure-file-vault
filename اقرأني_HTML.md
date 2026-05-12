@@ -269,18 +269,11 @@ secure-vault-html/
 3. احصل على رابط فوري
 4. HTTPS مجاني مضمن
 
-### الخيار 3: سيرفر محلي
+### الخيار 3: سيرفر محلي (اختياري)
 
-```bash
-# Python 3
-python -m http.server 8000
-
-# Node.js
-npx http-server
-
-# PHP
-php -S localhost:8000
-```
+يمكنك استخدام أي سيرفر ويب محلي لتشغيل التطبيق إذا لزم الأمر. أمثلة:
+- **Node.js**: `npx http-server`
+- **PHP**: `php -S localhost:8000`
 
 ثم افتح: `http://localhost:8000`
 

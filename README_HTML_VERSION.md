@@ -348,18 +348,11 @@ console.log(JSON.stringify(backup));
 3. Get instant URL
 4. Free HTTPS included
 
-### Option 3: Local Server
+### Option 3: Local Server (Optional)
 
-```bash
-# Python 3
-python -m http.server 8000
-
-# Node.js
-npx http-server
-
-# PHP
-php -S localhost:8000
-```
+You can use any local web server to run the application if needed. Examples:
+- **Node.js**: `npx http-server`
+- **PHP**: `php -S localhost:8000`
 
 Then open: `http://localhost:8000`
 
