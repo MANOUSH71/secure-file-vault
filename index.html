@@ -72,7 +72,7 @@
             </div>
             <div class="nav-links">
                 <a href="#" onclick="showPage('dashboardPage')" class="nav-link active">📂 Dashboard</a>
-                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('settingsPage')" class="nav-link">⚙️ Settings</a>
                 <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
                 <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications <span id="notifBadge" class="badge">0</span></a>
                 <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
@@ -215,15 +215,15 @@
         </div>
     </div>
 
-    <!-- Teams Page -->
-    <div id="teamsPage" class="page">
+    <!-- Settings Page -->
+    <div id="settingsPage" class="page">
         <nav class="navbar">
             <div class="nav-brand">
                 <h2>🔐 Secure Vault</h2>
             </div>
             <div class="nav-links">
                 <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
-                <a href="#" onclick="showPage('teamsPage')" class="nav-link active">👥 Teams</a>
+                <a href="#" onclick="showPage('settingsPage')" class="nav-link active">⚙️ Settings</a>
                 <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
                 <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
                 <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
@@ -237,12 +237,54 @@
 
         <div class="container">
             <div class="page-header">
-                <h1>👥 Teams Management</h1>
-                <button onclick="openCreateTeamModal()" class="btn btn-primary">+ Create Team</button>
+                <h1>⚙️ Account Settings</h1>
             </div>
 
-            <div id="teamsList" class="teams-grid">
-                <!-- Teams will be loaded here -->
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <h3>👤 Profile Information</h3>
+                    <form onsubmit="updateProfile(event)">
+                        <div class="form-group">
+                            <label>First Name</label>
+                            <input type="text" id="setFirstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name</label>
+                            <input type="text" id="setLastName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="setUsername" readonly disabled>
+                            <small>Username cannot be changed</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+                </div>
+
+                <div class="settings-card">
+                    <h3>🔒 Change Password</h3>
+                    <form onsubmit="updatePassword(event)">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPassword" required minlength="8">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmPassword" required minlength="8">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </form>
+                </div>
+
+                <div class="settings-card danger-zone">
+                    <h3>⚠️ Danger Zone</h3>
+                    <p>Permanently delete all your encrypted files and data.</p>
+                    <button onclick="clearAllData()" class="btn btn-danger">🗑️ Clear All Data</button>
+                </div>
             </div>
         </div>
     </div>
@@ -255,7 +297,7 @@
             </div>
             <div class="nav-links">
                 <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
-                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('settingsPage')" class="nav-link">⚙️ Settings</a>
                 <a href="#" onclick="showPage('analyticsPage')" class="nav-link active">📊 Analytics</a>
                 <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
                 <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
@@ -302,7 +344,7 @@
             </div>
             <div class="nav-links">
                 <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
-                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('settingsPage')" class="nav-link">⚙️ Settings</a>
                 <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
                 <a href="#" onclick="showPage('notificationsPage')" class="nav-link active">🔔 Notifications</a>
                 <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
@@ -342,7 +384,7 @@
             </div>
             <div class="nav-links">
                 <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
-                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('settingsPage')" class="nav-link">⚙️ Settings</a>
                 <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
                 <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
                 <a href="#" onclick="showPage('auditPage')" class="nav-link active">📋 Audit Logs</a>
@@ -388,7 +430,7 @@
             </div>
             <div class="nav-links">
                 <a href="#" onclick="showPage('dashboardPage')" class="nav-link">📂 Dashboard</a>
-                <a href="#" onclick="showPage('teamsPage')" class="nav-link">👥 Teams</a>
+                <a href="#" onclick="showPage('settingsPage')" class="nav-link">⚙️ Settings</a>
                 <a href="#" onclick="showPage('analyticsPage')" class="nav-link">📊 Analytics</a>
                 <a href="#" onclick="showPage('notificationsPage')" class="nav-link">🔔 Notifications</a>
                 <a href="#" onclick="showPage('auditPage')" class="nav-link">📋 Audit Logs</a>
@@ -458,7 +500,7 @@
 
     <script src="crypto.js"></script>
     <script src="app.js"></script>
-    <script src="teams.js"></script>
+    <script src="settings.js"></script>
     <script src="analytics.js"></script>
     <script src="notifications.js"></script>
     <script src="audit.js"></script>
